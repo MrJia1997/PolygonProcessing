@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/new/icon/toolbar">
+        <file>icon/toolbar/move.png</file>
+        <file>icon/toolbar/rotate.png</file>
+        <file>icon/toolbar/zoom.png</file>
+        <file>icon/toolbar/hflip.png</file>
+        <file>icon/toolbar/vflip.png</file>
+        <file>icon/toolbar/clip.png</file>
+        <file>icon/toolbar/polygon.png</file>
+        <file>icon/toolbar/erase.png</file>
+    </qresource>
+</RCC>
