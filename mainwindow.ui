@@ -44,14 +44,14 @@
        <item>
         <layout class="QHBoxLayout" name="graphLayerActions">
          <item>
-          <widget class="QPushButton" name="deleteGraphLayer">
+          <widget class="QPushButton" name="addGraphLayer">
            <property name="text">
             <string>Add</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="addGraphLayer">
+          <widget class="QPushButton" name="deleteGraphLayer">
            <property name="text">
             <string>Delete</string>
            </property>
@@ -70,7 +70,7 @@
      <x>0</x>
      <y>0</y>
      <width>960</width>
-     <height>22</height>
+     <height>25</height>
     </rect>
    </property>
   </widget>
@@ -90,7 +90,9 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="action_polygon"/>
+   <addaction name="action_outer"/>
+   <addaction name="action_inner"/>
+   <addaction name="action_palette"/>
    <addaction name="action_erase"/>
    <addaction name="separator"/>
    <addaction name="action_move"/>
@@ -228,6 +230,57 @@
    </property>
    <property name="toolTip">
     <string>Click to erase</string>
+   </property>
+  </action>
+  <action name="action_outer">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="toolbaricon.qrc">
+     <normaloff>:/new/icon/toolbar/icon/toolbar/polygon_outer.png</normaloff>:/new/icon/toolbar/icon/toolbar/polygon_outer.png</iconset>
+   </property>
+   <property name="text">
+    <string>outer</string>
+   </property>
+   <property name="toolTip">
+    <string>Click to draw outer polygon.</string>
+   </property>
+   <property name="shortcut">
+    <string>Meta+Shift+O</string>
+   </property>
+  </action>
+  <action name="action_inner">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="toolbaricon.qrc">
+     <normaloff>:/new/icon/toolbar/icon/toolbar/polygon_inner.png</normaloff>:/new/icon/toolbar/icon/toolbar/polygon_inner.png</iconset>
+   </property>
+   <property name="text">
+    <string>inner</string>
+   </property>
+   <property name="toolTip">
+    <string>Click to draw inner polygon.</string>
+   </property>
+   <property name="shortcut">
+    <string>Meta+Shift+I</string>
+   </property>
+  </action>
+  <action name="action_palette">
+   <property name="icon">
+    <iconset resource="toolbaricon.qrc">
+     <normaloff>:/new/icon/toolbar/icon/toolbar/palette.png</normaloff>:/new/icon/toolbar/icon/toolbar/palette.png</iconset>
+   </property>
+   <property name="text">
+    <string>palette</string>
+   </property>
+   <property name="toolTip">
+    <string>Click to change color.</string>
+   </property>
+   <property name="shortcut">
+    <string>Meta+Shift+P</string>
    </property>
   </action>
  </widget>

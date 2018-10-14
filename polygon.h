@@ -58,12 +58,12 @@ class Polygon {
 public:
     SimplePolygon outerRing;
     QList<SimplePolygon> innerRings;
-    QColor innerColor = QColor(255, 255, 255, 0);
+    QColor innerColor = QColor(255, 255, 0);
     bool isVisible = true;
 
 public:
     Polygon() {}
-    Polygon(SimplePolygon o, QList<SimplePolygon> i): outerRing(o), innerRings(i) {}
+    Polygon(SimplePolygon o, QList<SimplePolygon> i = QList<SimplePolygon>()): outerRing(o), innerRings(i) {}
     ~Polygon() {innerRings.clear();}
 
     int isInsidePolygon(Point p);

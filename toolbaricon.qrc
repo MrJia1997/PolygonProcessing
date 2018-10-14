@@ -8,5 +8,8 @@
         <file>icon/toolbar/clip.png</file>
         <file>icon/toolbar/polygon.png</file>
         <file>icon/toolbar/erase.png</file>
+        <file>icon/toolbar/polygon_inner.png</file>
+        <file>icon/toolbar/polygon_outer.png</file>
+        <file>icon/toolbar/palette.png</file>
     </qresource>
 </RCC>

@@ -1,53 +1,165 @@
 #include "renderarea.h"
+#include <QtMath>
 #include <QVector>
 #include <QColor>
 #include <QPen>
 #include <QPainter>
+#include <QMessageBox>
 #include <QDebug>
 
 RenderArea::RenderArea(QWidget *parent) : QWidget (parent) {
 
     int areaHeight = this->size().height();
     int areaWidth = this->size().width();
-    qDebug() << "Render Area Height: " << areaHeight;
-    qDebug() << "Render Area Width: " << areaWidth;
+    qDebug() << "Render Area Height:" << areaHeight;
+    qDebug() << "Render Area Width:" << areaWidth;
 
-    // Example vertices;
-    QList<Point> vertices;
-    vertices.append(Point(100, 100));
-    vertices.append(Point(50, 150));
-    vertices.append(Point(100, 200));
-    vertices.append(Point(150, 150));
-    SimplePolygon outer(vertices);
-    QList<Point> vertices2;
-    vertices2.append(Point(100, 125));
-    vertices2.append(Point(75, 150));
-    vertices2.append(Point(100, 175));
-    vertices2.append(Point(125, 150));
-    SimplePolygon inner1(vertices2);
-    QList<SimplePolygon> inner;
-    inner.append(inner1);
+//    // Example vertices;
+//    QList<Point> vertices;
+//    vertices.append(Point(100, 100));
+//    vertices.append(Point(50, 150));
+//    vertices.append(Point(100, 200));
+//    vertices.append(Point(150, 150));
+//    SimplePolygon outer(vertices);
+//    QList<Point> vertices2;
+//    vertices2.append(Point(100, 125));
+//    vertices2.append(Point(75, 150));
+//    vertices2.append(Point(100, 175));
+//    vertices2.append(Point(125, 150));
+//    SimplePolygon inner1(vertices2);
+//    QList<SimplePolygon> inner;
+//    inner.append(inner1);
 
-    Polygon p(outer, inner);
-    p.innerColor = QColor(255, 0, 0);
-    polygons.append(p);
+//    Polygon p(outer, inner);
+//    p.innerColor = QColor(255, 0, 0);
+//    polygons.append(p);
 
 
     setBackgroundRole(QPalette::Base);
     setAutoFillBackground(true);
+    setMouseTracking(true);
 
-    // update();
+}
+
+int RenderArea::getPolygonNum() {
+    return polygons.size();
+}
+
+void RenderArea::addPolygon() {
+    polygons.append(Polygon());
+}
+
+void RenderArea::deletePolygon(int id) {
+    polygons.removeAt(id);
+}
+
+void RenderArea::clearTempPolygonPath() {
+    tempPolygonPath.clear();
+}
+
+void RenderArea::changeGraphLayer(int id) {
+    curGraphLayer = id;
+}
+
+void RenderArea::changeStatus(int status) {
+    curStatus = status;
+}
+
+void RenderArea::eraseCurrentPolygon(){
+    polygons[curGraphLayer] = Polygon();
+}
+
+void RenderArea::horizontallyFlip(){
+    // TODO: Add horizontally flip.
+}
+
+void RenderArea::verticallyFlip() {
+    // TODO: Add vertically flip.
+}
+
+void RenderArea::mousePressEvent(QMouseEvent *event) {
+    qDebug() << "Mouse Pressed @" << event->pos();
+    if (curStatus == DRAW_OUTER_RING) {
+        if (polygons[curGraphLayer].outerRing.vertices.size() > 0) {
+            QMessageBox::warning(this, QString("Warning"), QString("You must erase before draw a new one."));
+            return;
+        }
+
+        curMousePos = Point(event->pos().x(), event->pos().y());
+        auto distance = [](Point A, Point B) {
+            return qSqrt((A.x-B.x) * (A.x-B.x) + (A.y-B.y) * (A.y-B.y));
+        };
+
+        // Close the polygon path
+        if (tempPolygonPath.size() >= 3 && distance(curMousePos, tempPolygonPath[0]) < 3) {
+            curStatus = DEFAULT;
+            SimplePolygon sp(tempPolygonPath);
+            polygons[curGraphLayer] = Polygon(sp);
+
+            tempPolygonPath.clear();
+            emit polygonPathClosed();
+        }
+        else {
+            tempPolygonPath.append(curMousePos);
+        }
+
+    }
+
+    update();
+}
+
+void RenderArea::mouseMoveEvent(QMouseEvent *event) {
+    curMousePos = Point(event->pos().x(), event->pos().y());
+    update();
+}
+
+void RenderArea::mouseReleaseEvent(QMouseEvent *event) {
+
 }
 
 void RenderArea::paintEvent(QPaintEvent *event) {
     qDebug() << "Paint Event Triggered.";
+
+    paintFrame();
     for (int i = 0; i < polygons.size(); i++) {
         if (polygons[i].isVisible) {
             qDebug() << "Draw Polygon " << i;
             paintPolygon(polygons[i]);
         }
     }
+
+    if (curStatus == DRAW_OUTER_RING || curStatus == DRAW_INNER_RING)
+        paintTempPolygonPath();
 }
+
+void RenderArea::paintFrame() {
+    QPainter painter(this);
+    QPen pen(Qt::black, 1, Qt::SolidLine);
+    painter.setPen(pen);
+
+    painter.drawRect(0, 0, this->size().width() - 1, this->size().height() - 1);
+
+}
+void RenderArea::paintTempPolygonPath() {
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    QPen pen(Qt::black, 1, Qt::SolidLine);
+    painter.setPen(pen);
+
+    int n = tempPolygonPath.size();
+    for (int i = 1; i < n; i++) {
+        Point p1 = tempPolygonPath[i - 1];
+        Point p2 = tempPolygonPath[i];
+        painter.drawLine(p1.x, p1.y, p2.x, p2.y);
+    }
+
+    if (n > 0) {
+        Point end = tempPolygonPath[n-1];
+        painter.drawLine(end.x, end.y, curMousePos.x, curMousePos.y);
+    }
+
+}
+
 
 void RenderArea::paintPolygon(Polygon p) {
     // Paint edges
@@ -62,6 +174,7 @@ void RenderArea::paintPolygon(Polygon p) {
 
 void RenderArea::paintEdges(SimplePolygon sp) {
     QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing, true);
     QPen pen(sp.edgeColor, 1, Qt::SolidLine);
     painter.setPen(pen);
     int v = sp.vertices.size();
@@ -75,6 +188,7 @@ void RenderArea::paintEdges(SimplePolygon sp) {
 
 void RenderArea::fillInnerArea(Polygon p) {
     QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing, true);
     QPen pen(p.innerColor, 1, Qt::SolidLine);
     painter.setPen(pen);
 
