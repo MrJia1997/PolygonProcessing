@@ -143,7 +143,7 @@ void RenderArea::paintFrame() {
 void RenderArea::paintTempPolygonPath() {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing, true);
-    QPen pen(Qt::black, 1, Qt::SolidLine);
+    QPen pen(Qt::black, 2, Qt::SolidLine);
     painter.setPen(pen);
 
     int n = tempPolygonPath.size();
@@ -175,7 +175,7 @@ void RenderArea::paintPolygon(Polygon p) {
 void RenderArea::paintEdges(SimplePolygon sp) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing, true);
-    QPen pen(sp.edgeColor, 1, Qt::SolidLine);
+    QPen pen(sp.edgeColor, 2, Qt::SolidLine);
     painter.setPen(pen);
     int v = sp.vertices.size();
     for (int i = 0; i < v; i++) {
@@ -218,7 +218,7 @@ void RenderArea::fillInnerArea(Polygon p) {
             yminAll = outer.vertices[i].y;
         }
     }
-    for (int i = 0; i < ymaxAll; i++)
+    for (int i = 0; i <= ymaxAll; i++)
         NET[i] = new Edge;
     AET = new Edge;
 
@@ -273,7 +273,9 @@ void RenderArea::fillInnerArea(Polygon p) {
             Edge *insertPos = AET;
 
             while (insertPos->next) {
-                if (e->x > insertPos->next->x) {
+                // First compare x, second compare deltax.
+                if ((e->x > insertPos->next->x) ||
+                    (qAbs(e->x - insertPos->next->x) < 1e-5 && e->deltax > insertPos->next->deltax)) {
                     insertPos = insertPos->next;
                     continue;
                 }
@@ -290,7 +292,7 @@ void RenderArea::fillInnerArea(Polygon p) {
         while (p->next && p->next) {
             double x_A = p->next->x;
             double x_B = p->next->next->x;
-            for (int x = static_cast<int>(x_A + 1); x < x_B; x++)
+            for (int x = static_cast<int>(x_A + 2); x < (x_B - 2); x++)
                 painter.drawPoint(x, y);
             p = p->next->next;
         }
