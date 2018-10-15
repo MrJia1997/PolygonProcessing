@@ -14,27 +14,6 @@ RenderArea::RenderArea(QWidget *parent) : QWidget (parent) {
     qDebug() << "Render Area Height:" << areaHeight;
     qDebug() << "Render Area Width:" << areaWidth;
 
-//    // Example vertices;
-//    QList<Point> vertices;
-//    vertices.append(Point(100, 100));
-//    vertices.append(Point(50, 150));
-//    vertices.append(Point(100, 200));
-//    vertices.append(Point(150, 150));
-//    SimplePolygon outer(vertices);
-//    QList<Point> vertices2;
-//    vertices2.append(Point(100, 125));
-//    vertices2.append(Point(75, 150));
-//    vertices2.append(Point(100, 175));
-//    vertices2.append(Point(125, 150));
-//    SimplePolygon inner1(vertices2);
-//    QList<SimplePolygon> inner;
-//    inner.append(inner1);
-
-//    Polygon p(outer, inner);
-//    p.innerColor = QColor(255, 0, 0);
-//    polygons.append(p);
-
-
     setBackgroundRole(QPalette::Base);
     setAutoFillBackground(true);
     setMouseTracking(true);
@@ -43,6 +22,20 @@ RenderArea::RenderArea(QWidget *parent) : QWidget (parent) {
 
 int RenderArea::getPolygonNum() {
     return polygons.size();
+}
+
+QColor RenderArea::getPolygonFillColor(int id) {
+    if (id < 0)
+        return QColor();
+
+    return polygons[id].fillColor;
+}
+
+QColor RenderArea::getPolygonEdgeColor(int id) {
+    if (id < 0)
+        return QColor();
+
+    return polygons[id].outerRing.edgeColor;
 }
 
 void RenderArea::addPolygon() {
@@ -57,28 +50,93 @@ void RenderArea::clearTempPolygonPath() {
     tempPolygonPath.clear();
 }
 
-void RenderArea::changeGraphLayer(int id) {
+void RenderArea::setGraphLayer(int id) {
     curGraphLayer = id;
 }
 
-void RenderArea::changeStatus(int status) {
+void RenderArea::setStatus(int status) {
     curStatus = status;
+}
+
+void RenderArea::setPolygonFillColor(int id, QColor color) {
+    if (id < 0)
+        return;
+    polygons[id].fillColor = color;
+}
+
+void RenderArea::setPolygonEdgeColor(int id, QColor color) {
+    if (id < 0)
+        return;
+    polygons[id].outerRing.edgeColor = color;
+    for (int i = 0; i < polygons[id].innerRings.size(); i++) {
+        polygons[id].innerRings[i].edgeColor = color;
+    }
 }
 
 void RenderArea::eraseCurrentPolygon(){
     polygons[curGraphLayer] = Polygon();
+    update();
 }
 
 void RenderArea::horizontallyFlip(){
-    // TODO: Add horizontally flip.
+    if (polygons[curGraphLayer].outerRing.vertices.size() == 0) {
+        QMessageBox::warning(this, QString("Warning"), QString("You must have a polygon before flipping."));
+        return;
+    }
+
+    double meanY = 0.0;
+    for (int i = 0; i < polygons[curGraphLayer].outerRing.vertices.size(); i++) {
+        meanY += polygons[curGraphLayer].outerRing.vertices[i].y;
+    }
+    meanY /= polygons[curGraphLayer].outerRing.vertices.size();
+
+
+    int intMeanY = static_cast<int>(meanY);
+    Polygon translateResult = polygons[curGraphLayer];
+    for (int i = 0; i < translateResult.outerRing.vertices.size(); i++) {
+        translateResult.outerRing.vertices[i].y = 2 * intMeanY - translateResult.outerRing.vertices[i].y;
+    }
+    for (int i = 0; i < translateResult.innerRings.size(); i++) {
+        for (int j = 0; j < translateResult.innerRings[i].vertices.size(); j++) {
+            translateResult.innerRings[i].vertices[j].y = 2 * intMeanY - translateResult.innerRings[i].vertices[j].y;
+        }
+    }
+    polygons[curGraphLayer] = translateResult;
+
+    update();
 }
 
 void RenderArea::verticallyFlip() {
-    // TODO: Add vertically flip.
+    if (polygons[curGraphLayer].outerRing.vertices.size() == 0) {
+        QMessageBox::warning(this, QString("Warning"), QString("You must have a polygon before flipping."));
+        return;
+    }
+
+    double meanX = 0.0;
+    for (int i = 0; i < polygons[curGraphLayer].outerRing.vertices.size(); i++) {
+        meanX += polygons[curGraphLayer].outerRing.vertices[i].x;
+    }
+    meanX /= polygons[curGraphLayer].outerRing.vertices.size();
+
+
+    int intMeanX = static_cast<int>(meanX);
+    Polygon translateResult = polygons[curGraphLayer];
+    for (int i = 0; i < translateResult.outerRing.vertices.size(); i++) {
+        translateResult.outerRing.vertices[i].x = 2 * intMeanX - translateResult.outerRing.vertices[i].x;
+    }
+    for (int i = 0; i < translateResult.innerRings.size(); i++) {
+        for (int j = 0; j < translateResult.innerRings[i].vertices.size(); j++) {
+            translateResult.innerRings[i].vertices[j].x = 2 * intMeanX - translateResult.innerRings[i].vertices[j].x;
+        }
+    }
+    polygons[curGraphLayer] = translateResult;
+
+    update();
 }
 
 void RenderArea::mousePressEvent(QMouseEvent *event) {
     qDebug() << "Mouse Pressed @" << event->pos();
+
     if (curStatus == DRAW_OUTER_RING) {
         if (polygons[curGraphLayer].outerRing.vertices.size() > 0) {
             QMessageBox::warning(this, QString("Warning"), QString("You must erase before draw a new one."));
@@ -86,14 +144,14 @@ void RenderArea::mousePressEvent(QMouseEvent *event) {
         }
 
         curMousePos = Point(event->pos().x(), event->pos().y());
-        auto distance = [](Point A, Point B) {
-            return qSqrt((A.x-B.x) * (A.x-B.x) + (A.y-B.y) * (A.y-B.y));
-        };
 
         // Close the polygon path
-        if (tempPolygonPath.size() >= 3 && distance(curMousePos, tempPolygonPath[0]) < 3) {
+        if (tempPolygonPath.size() >= 3 && (curMousePos - tempPolygonPath[0]).module() < 10) {
             curStatus = DEFAULT;
             SimplePolygon sp(tempPolygonPath);
+            sp.edgeColor = polygons[curGraphLayer].outerRing.edgeColor;
+            Polygon p(sp);
+            p.fillColor = polygons[curGraphLayer].fillColor;
             polygons[curGraphLayer] = Polygon(sp);
 
             tempPolygonPath.clear();
@@ -104,26 +162,159 @@ void RenderArea::mousePressEvent(QMouseEvent *event) {
         }
 
     }
+    else if (curStatus == DRAW_INNER_RING) {
+        if (polygons[curGraphLayer].outerRing.vertices.size() == 0) {
+            QMessageBox::warning(this, QString("Warning"), QString("You must have outer ring before drawing inner ring."));
+            return;
+        }
+
+        curMousePos = Point(event->pos().x(), event->pos().y());
+        //qDebug() << "Is in the outer ring:" << polygons[curGraphLayer].outerRing.isInsideSimplePolygon(curMousePos);
+
+        if (!polygons[curGraphLayer].outerRing.isInsideSimplePolygon(curMousePos)) {
+            QMessageBox::warning(this, QString("Warning"), QString("Inner ring must inside the outer ring."));
+            tempPolygonPath.clear();
+            return;
+        }
+
+        // Close the polygon path
+        if (tempPolygonPath.size() >= 3 && (curMousePos - tempPolygonPath[0]).module() < 10) {
+            curStatus = DEFAULT;
+            SimplePolygon sp(tempPolygonPath);
+            sp.edgeColor = polygons[curGraphLayer].outerRing.edgeColor;
+            polygons[curGraphLayer].innerRings.append(sp);
+
+            tempPolygonPath.clear();
+            emit polygonPathClosed();
+        }
+        else {
+            tempPolygonPath.append(curMousePos);
+        }
+
+    }
+    else if (curStatus == MOVE) {
+        if (polygons[curGraphLayer].outerRing.vertices.size() == 0) {
+            QMessageBox::warning(this, QString("Warning"), QString("You must have a polygon before moving."));
+            return;
+        }
+
+        pressMousePos = Point(event->pos().x(), event->pos().y());
+        tempPolygon = polygons[curGraphLayer];
+        startMove = true;
+    }
+    else if (curStatus == ROTATE) {
+        if (polygons[curGraphLayer].outerRing.vertices.size() == 0) {
+            QMessageBox::warning(this, QString("Warning"), QString("You must have a polygon before rotating."));
+            return;
+        }
+
+        pressMousePos = Point(event->pos().x(), event->pos().y());
+        tempPolygon = polygons[curGraphLayer];
+        startRotate = true;
+    }
 
     update();
 }
 
 void RenderArea::mouseMoveEvent(QMouseEvent *event) {
     curMousePos = Point(event->pos().x(), event->pos().y());
+
+    if (curStatus == MOVE && startMove) {
+        int deltaX = curMousePos.x - pressMousePos.x;
+        int deltaY = curMousePos.y - pressMousePos.y;
+
+        // Prevent from moving out of the frame.
+        int minX = INT_MAX, minY = INT_MAX, maxX = INT_MIN, maxY = INT_MIN;
+        for (int i = 0; i < tempPolygon.outerRing.vertices.size(); i++) {
+            Point p = tempPolygon.outerRing.vertices[i];
+            if (p.x < minX)
+                minX = p.x;
+            if (p.x > maxX)
+                maxX = p.x;
+            if (p.y < minY)
+                minY = p.y;
+            if (p.y > maxY)
+                maxY = p.y;
+        }
+
+        int areaHeight = this->size().height();
+        int areaWidth = this->size().width();
+
+        if (deltaX > 0)
+            deltaX = qMin(deltaX, areaWidth - maxX - 2);
+        else
+            deltaX = qMax(deltaX, -minX + 2);
+        if (deltaY > 0)
+            deltaY = qMin(deltaY, areaHeight - maxY - 2);
+        else
+            deltaY = qMax(deltaY, -minY + 2);
+
+        // Do translation.
+        Polygon translateResult = tempPolygon;
+        for (int i = 0; i < translateResult.outerRing.vertices.size(); i++) {
+            translateResult.outerRing.vertices[i].translate(deltaX, deltaY);
+        }
+        for (int i = 0; i < translateResult.innerRings.size(); i++) {
+            for (int j = 0; j < translateResult.innerRings[i].vertices.size(); j++) {
+                translateResult.innerRings[i].vertices[j].translate(deltaX, deltaY);
+            }
+        }
+
+        polygons[curGraphLayer] = translateResult;
+    }
+    else if (curStatus == ROTATE && startRotate == true) {
+        // Calculate rotate center.
+        double meanX = 0.0, meanY = 0.0;
+        for (int i = 0; i < tempPolygon.outerRing.vertices.size(); i++) {
+            meanX += tempPolygon.outerRing.vertices[i].x;
+            meanY += tempPolygon.outerRing.vertices[i].y;
+        }
+        meanX /= tempPolygon.outerRing.vertices.size();
+        meanY /= tempPolygon.outerRing.vertices.size();
+        Point center(static_cast<int>(meanX), static_cast<int>(meanY));
+
+        // Calculate counter-clockwise rotate angle beta.
+        Vector vPress = pressMousePos - center;
+        Vector vCur = curMousePos - center;
+        double sinB = 1.0 * (vPress ^ vCur) / (vPress.module() * vCur.module());
+        double cosB = 1.0 * (vPress * vCur) / (vPress.module() * vCur.module());
+
+        // Do rotation
+        Polygon rotateResult = tempPolygon;
+        for (int i = 0; i < rotateResult.outerRing.vertices.size(); i++) {
+            Vector vPoly = rotateResult.outerRing.vertices[i] - center;
+            vPoly.rotate(sinB, cosB);
+            rotateResult.outerRing.vertices[i] = center+ vPoly;
+
+        }
+        for (int i = 0; i < rotateResult.innerRings.size(); i++) {
+            for (int j = 0; j < rotateResult.innerRings[i].vertices.size(); j++) {
+                Vector vPoly = rotateResult.innerRings[i].vertices[j] - center;
+                vPoly.rotate(sinB, cosB);
+                rotateResult.innerRings[i].vertices[j] = center + vPoly;
+            }
+        }
+
+        polygons[curGraphLayer] = rotateResult;
+    }
+
     update();
 }
 
 void RenderArea::mouseReleaseEvent(QMouseEvent *event) {
-
+    if (curStatus == MOVE && startMove)
+        startMove = false;
+    else if (curStatus == ROTATE && startRotate)
+        startRotate = false;
 }
 
 void RenderArea::paintEvent(QPaintEvent *event) {
-    qDebug() << "Paint Event Triggered.";
+    // qDebug() << "Paint Event Triggered.";
 
     paintFrame();
     for (int i = 0; i < polygons.size(); i++) {
         if (polygons[i].isVisible) {
-            qDebug() << "Draw Polygon " << i;
+            // qDebug() << "Draw Polygon " << i;
             paintPolygon(polygons[i]);
         }
     }
@@ -189,7 +380,7 @@ void RenderArea::paintEdges(SimplePolygon sp) {
 void RenderArea::fillInnerArea(Polygon p) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing, true);
-    QPen pen(p.innerColor, 1, Qt::SolidLine);
+    QPen pen(p.fillColor, 1, Qt::SolidLine);
     painter.setPen(pen);
 
     // Using Line Sweep Algorithm

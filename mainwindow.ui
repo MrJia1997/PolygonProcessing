@@ -90,20 +90,20 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="action_outer"/>
-   <addaction name="action_inner"/>
-   <addaction name="action_palette"/>
-   <addaction name="action_erase"/>
+   <addaction name="actionOuter"/>
+   <addaction name="actionInner"/>
+   <addaction name="actionPalette"/>
+   <addaction name="actionErase"/>
    <addaction name="separator"/>
-   <addaction name="action_move"/>
-   <addaction name="action_rotate"/>
-   <addaction name="action_zoom"/>
-   <addaction name="action_vflip"/>
-   <addaction name="action_hflip"/>
+   <addaction name="actionMove"/>
+   <addaction name="actionRotate"/>
+   <addaction name="actionZoom"/>
+   <addaction name="actionVflip"/>
+   <addaction name="actionHflip"/>
    <addaction name="separator"/>
-   <addaction name="action_clip"/>
+   <addaction name="actionClip"/>
   </widget>
-  <action name="action_move">
+  <action name="actionMove">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -121,7 +121,7 @@
     <string>Meta+Shift+M</string>
    </property>
   </action>
-  <action name="action_zoom">
+  <action name="actionZoom">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -139,7 +139,7 @@
     <string>Meta+Shift+Z</string>
    </property>
   </action>
-  <action name="action_rotate">
+  <action name="actionRotate">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -157,7 +157,7 @@
     <string>Meta+Shift+R</string>
    </property>
   </action>
-  <action name="action_vflip">
+  <action name="actionVflip">
    <property name="icon">
     <iconset resource="toolbaricon.qrc">
      <normaloff>:/new/icon/toolbar/icon/toolbar/vflip.png</normaloff>:/new/icon/toolbar/icon/toolbar/vflip.png</iconset>
@@ -172,7 +172,7 @@
     <string>Meta+F</string>
    </property>
   </action>
-  <action name="action_hflip">
+  <action name="actionHflip">
    <property name="icon">
     <iconset resource="toolbaricon.qrc">
      <normaloff>:/new/icon/toolbar/icon/toolbar/hflip.png</normaloff>:/new/icon/toolbar/icon/toolbar/hflip.png</iconset>
@@ -187,7 +187,7 @@
     <string>Meta+Shift+F</string>
    </property>
   </action>
-  <action name="action_clip">
+  <action name="actionClip">
    <property name="icon">
     <iconset resource="toolbaricon.qrc">
      <normaloff>:/new/icon/toolbar/icon/toolbar/clip.png</normaloff>:/new/icon/toolbar/icon/toolbar/clip.png</iconset>
@@ -202,7 +202,7 @@
     <string>Meta+Shift+C</string>
    </property>
   </action>
-  <action name="action_polygon">
+  <action name="actionPolygon">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -220,7 +220,7 @@
     <string>Meta+Shift+P</string>
    </property>
   </action>
-  <action name="action_erase">
+  <action name="actionErase">
    <property name="icon">
     <iconset resource="toolbaricon.qrc">
      <normaloff>:/new/icon/toolbar/icon/toolbar/erase.png</normaloff>:/new/icon/toolbar/icon/toolbar/erase.png</iconset>
@@ -232,7 +232,7 @@
     <string>Click to erase</string>
    </property>
   </action>
-  <action name="action_outer">
+  <action name="actionOuter">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -250,7 +250,7 @@
     <string>Meta+Shift+O</string>
    </property>
   </action>
-  <action name="action_inner">
+  <action name="actionInner">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -268,7 +268,7 @@
     <string>Meta+Shift+I</string>
    </property>
   </action>
-  <action name="action_palette">
+  <action name="actionPalette">
    <property name="icon">
     <iconset resource="toolbaricon.qrc">
      <normaloff>:/new/icon/toolbar/icon/toolbar/palette.png</normaloff>:/new/icon/toolbar/icon/toolbar/palette.png</iconset>

@@ -20,6 +20,8 @@ class RenderArea : public QWidget {
 public:
     RenderArea(QWidget *parent = nullptr);
     int getPolygonNum();
+    QColor getPolygonFillColor(int id);
+    QColor getPolygonEdgeColor(int id);
     void addPolygon();
     void deletePolygon(int id);
     void clearTempPolygonPath();
@@ -28,8 +30,10 @@ signals:
     void polygonPathClosed();
 
 public slots:
-    void changeGraphLayer(int id);
-    void changeStatus(int status);
+    void setGraphLayer(int id);
+    void setStatus(int status);
+    void setPolygonFillColor(int id, QColor color);
+    void setPolygonEdgeColor(int id, QColor color);
     void eraseCurrentPolygon();
     void horizontallyFlip();
     void verticallyFlip();
@@ -43,10 +47,16 @@ protected:
 private:
     QList<Polygon> polygons;
     QList<Point> tempPolygonPath;
+    Polygon tempPolygon;
+
     int curGraphLayer = -1;
     int curStatus = DEFAULT;
+
+    Point pressMousePos;
     Point curMousePos;
 
+    bool startMove = false;
+    bool startRotate = false;
 private:
     void paintFrame();
     void paintPolygon(Polygon p);

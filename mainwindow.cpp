@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include <QDebug>
 #include <QMessageBox>
+#include <QColorDialog>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -21,13 +22,6 @@ MainWindow::~MainWindow()
 }
 
 void MainWindow::initGraphLayer() {
-//    int n = polygonRender->getPolygonNum();
-//    for (int i = 0; i < 10; i++) {
-//        QListWidgetItem *newItem = new QListWidgetItem;
-//        newItem->setText(QString("New Layer ") + QString::number(newLayerCounter));
-//        ui->graphLayerList->addItem(newItem);
-//        newLayerCounter++;
-//    }
 
     connect(ui->graphLayerList, SIGNAL(currentRowChanged(int)), this, SLOT(onChangeGraphLayer(int)));
     connect(ui->addGraphLayer, SIGNAL(clicked()), this, SLOT(addGraphLayer()));
@@ -36,16 +30,16 @@ void MainWindow::initGraphLayer() {
 
 void MainWindow::createToolbarActionGroup() {
     toolbarActions = new QActionGroup(this);
-    toolbarActions->addAction(ui->action_outer);
-    toolbarActions->addAction(ui->action_inner);
-    toolbarActions->addAction(ui->action_palette);
-    toolbarActions->addAction(ui->action_erase);
-    toolbarActions->addAction(ui->action_move);
-    toolbarActions->addAction(ui->action_rotate);
-    toolbarActions->addAction(ui->action_zoom);
-    toolbarActions->addAction(ui->action_hflip);
-    toolbarActions->addAction(ui->action_vflip);
-    toolbarActions->addAction(ui->action_clip);
+    toolbarActions->addAction(ui->actionOuter);
+    toolbarActions->addAction(ui->actionInner);
+    toolbarActions->addAction(ui->actionPalette);
+    toolbarActions->addAction(ui->actionErase);
+    toolbarActions->addAction(ui->actionMove);
+    toolbarActions->addAction(ui->actionRotate);
+    toolbarActions->addAction(ui->actionZoom);
+    toolbarActions->addAction(ui->actionHflip);
+    toolbarActions->addAction(ui->actionVflip);
+    toolbarActions->addAction(ui->actionClip);
 
     connect(toolbarActions, SIGNAL(triggered(QAction*)), this, SLOT(onClickToolbarActionGroup(QAction*)));
 }
@@ -65,26 +59,67 @@ void MainWindow::restoreToolbar() {
 }
 
 void MainWindow::onClickToolbarActionGroup(QAction *action) {
-    // TODO: Add tool bar actions.
     polygonRender->clearTempPolygonPath();
+    polygonRender->setStatus(DEFAULT);
 
-    if (ui->graphLayerList->currentRow() < 0) // No valid layer
+    // No valid layer
+    if (ui->graphLayerList->currentRow() < 0)
     {
         QMessageBox::warning(this, QString("Warning"), QString("No graph layer selected."));
         restoreToolbar();
         return;
     }
-    if (action == ui->action_outer) {
-        polygonRender->changeStatus(DRAW_OUTER_RING);
-        return;
-    }
 
+
+    if (action == ui->actionOuter) {
+        polygonRender->setStatus(DRAW_OUTER_RING);
+    }
+    else if (action == ui->actionInner) {
+        polygonRender->setStatus(DRAW_INNER_RING);
+    }
+    else if (action == ui->actionPalette) {
+        int graphLayerId = ui->graphLayerList->currentRow();
+
+        QMessageBox::information(this, QString("Change Color"), QString("Please choose color filled in the polygon."));
+        QColor fillColor = QColorDialog::getColor(polygonRender->getPolygonFillColor(graphLayerId),this);
+        QMessageBox::information(this, QString("Change Color"), QString("Please choose color of the polygon edges."));
+        QColor edgeColor = QColorDialog::getColor(polygonRender->getPolygonEdgeColor(graphLayerId),this);
+
+        polygonRender->setPolygonFillColor(graphLayerId, fillColor);
+        polygonRender->setPolygonEdgeColor(graphLayerId, edgeColor);
+
+        restoreToolbar();
+    }
+    else if (action == ui->actionErase) {
+        polygonRender->eraseCurrentPolygon();
+        restoreToolbar();
+    }
+    else if (action == ui->actionMove) {
+        polygonRender->setStatus(MOVE);
+    }
+    else if (action == ui->actionRotate) {
+        polygonRender->setStatus(ROTATE);
+    }
+    else if (action == ui->actionZoom) {
+        polygonRender->setStatus(ZOOM);
+    }
+    else if (action == ui->actionHflip) {
+        polygonRender->horizontallyFlip();
+        restoreToolbar();
+    }
+    else if (action == ui->actionVflip) {
+        polygonRender->verticallyFlip();
+        restoreToolbar();
+    }
+    else if (action == ui->actionClip) {
+        // TODO: clip
+    }
 }
 
 void MainWindow::onChangeGraphLayer(int id) {
     qDebug() << "Change to Graph Layer" << id;
-    polygonRender->changeGraphLayer(id);
-    polygonRender->changeStatus(DEFAULT);
+    polygonRender->setGraphLayer(id);
+    polygonRender->setStatus(DEFAULT);
 }
 
 void MainWindow::addGraphLayer() {

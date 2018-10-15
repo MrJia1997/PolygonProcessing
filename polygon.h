@@ -24,8 +24,10 @@ public:
     Vector(): x(0), y(0) {}
     Vector(int xi, int yi): x(xi), y(yi) {}
 
-    double crossProduct(Vector vec);
-
+    int operator*(Vector v);
+    int operator^(Vector v);
+    double module();
+    void rotate(double sinB, double cosB);
 };
 
 class Point {
@@ -37,7 +39,10 @@ public:
     Point(): x(0), y(0) {}
     Point(int xi, int yi): x(xi), y(yi) {}
 
+    Point operator+(Vector v);
     Vector operator-(Point p);
+    void translate(Vector delta);
+    void translate(int deltaX, int deltaY);
 };
 
 class SimplePolygon {
@@ -48,25 +53,23 @@ public:
 public:
     SimplePolygon() {}
     SimplePolygon(QList<Point> vertices) {this->vertices = vertices;}
-    ~SimplePolygon() {vertices.clear();}
 
     int isClockwise();
     void reverseVertices();
+    bool isInsideSimplePolygon(Point p);
 };
 
 class Polygon {
 public:
     SimplePolygon outerRing;
     QList<SimplePolygon> innerRings;
-    QColor innerColor = QColor(255, 255, 0);
+    QColor fillColor = QColor(255, 255, 255, 0);
     bool isVisible = true;
 
 public:
     Polygon() {}
     Polygon(SimplePolygon o, QList<SimplePolygon> i = QList<SimplePolygon>()): outerRing(o), innerRings(i) {}
     ~Polygon() {innerRings.clear();}
-
-    int isInsidePolygon(Point p);
 
 };
 #endif // POLYGON_H
