@@ -2,6 +2,14 @@
 #include <QtMath>
 
 
+// Multiplication by scalar
+Vector operator*(double a, Vector v) {
+    Vector res;
+    res.x = static_cast<int>(a * v.x);
+    res.y = static_cast<int>(a * v.y);
+    return res;
+}
+
 // Dot product
 int Vector::operator*(Vector v) {
     return x * v.x + y * v.y;
@@ -114,5 +122,149 @@ bool SimplePolygon::isInsideSimplePolygon(Point p) {
             }
         }
     }
+    return result;
+}
+
+Point Polygon::getCenter() {
+    Polygon afterP = this->afterTransformation();
+
+    double meanX = 0.0, meanY = 0.0;
+    for (int i = 0; i < afterP.outerRing.vertices.size(); i++) {
+        meanX += afterP.outerRing.vertices[i].x;
+        meanY += afterP.outerRing.vertices[i].y;
+    }
+    meanX /= afterP.outerRing.vertices.size();
+    meanY /= afterP.outerRing.vertices.size();
+    return Point(static_cast<int>(meanX), static_cast<int>(meanY));
+}
+
+void Polygon::translate(int deltaX, int deltaY) {
+    double transValue[] = {
+        1, 0, static_cast<double>(deltaX),
+        0, 1, static_cast<double>(deltaY),
+        0, 0, 1
+    };
+    transformation =  QGenericMatrix<3, 3, double>(transValue) * transformation;
+    return;
+}
+
+void Polygon::rotate(double sinB, double cosB) {
+    Point center = getCenter();
+    double transValue1[] = {
+        1, 0, static_cast<double>(-center.x),
+        0, 1, static_cast<double>(-center.y),
+        0, 0, 1
+    };
+    double rotValue[] = {
+        cosB, -sinB, 0,
+        sinB,  cosB, 0,
+           0,     0, 1
+    };
+    double transValue2[] = {
+        1, 0, static_cast<double>(center.x),
+        0, 1, static_cast<double>(center.y),
+        0, 0, 1
+    };
+    QGenericMatrix<3, 3, double> trans1(transValue1), trans2(transValue2), rot(rotValue);
+    transformation = trans2 * rot * trans1 * transformation;
+
+    return;
+}
+
+void Polygon::zoom(double scale) {
+    Point center = getCenter();
+
+    double transValue1[] = {
+        1, 0, static_cast<double>(-center.x),
+        0, 1, static_cast<double>(-center.y),
+        0, 0, 1
+    };
+    double zoomValue[] = {
+        scale,     0, 0,
+            0, scale, 0,
+            0,     0, 1
+    };
+    double transValue2[] = {
+        1, 0, static_cast<double>(center.x),
+        0, 1, static_cast<double>(center.y),
+        0, 0, 1
+    };
+    QGenericMatrix<3, 3, double> trans1(transValue1), trans2(transValue2), zoom(zoomValue);
+    transformation = trans2 * zoom * trans1 * transformation;
+
+    return;
+}
+
+void Polygon::horizontalFlip() {
+    Point center = getCenter();
+
+    double transValue1[] = {
+        1, 0, 0,
+        0, 1, static_cast<double>(-center.y),
+        0, 0, 1
+    };
+    double flipValue[] = {
+        1,  0, 0,
+        0, -1, 0,
+        0,  0, 1
+    };
+    double transValue2[] = {
+        1, 0, 0,
+        0, 1, static_cast<double>(center.y),
+        0, 0, 1
+    };
+    QGenericMatrix<3, 3, double> trans1(transValue1), trans2(transValue2), flip(flipValue);
+    transformation = trans2 * flip * trans1 * transformation;
+
+    return;
+}
+
+void Polygon::verticalFlip() {
+    Point center = getCenter();
+
+    double transValue1[] = {
+        1, 0, static_cast<double>(-center.x),
+        0, 1, 0,
+        0, 0, 1
+    };
+    double flipValue[] = {
+       -1, 0, 0,
+        0, 1, 0,
+        0, 0, 1
+    };
+    double transValue2[] = {
+        1, 0, static_cast<double>(center.x),
+        0, 1, 0,
+        0, 0, 1
+    };
+    QGenericMatrix<3, 3, double> trans1(transValue1), trans2(transValue2), flip(flipValue);
+    transformation = trans2 * flip * trans1 * transformation;
+
+    return;
+}
+
+SimplePolygon SimplePolygon::afterTransformation(SimplePolygon sp, QGenericMatrix<3, 3, double> transformation) {
+    SimplePolygon result = sp;
+    for (int i = 0; i < result.vertices.size(); i++) {
+        double values[] = {
+            static_cast<double>(result.vertices[i].x),
+            static_cast<double>(result.vertices[i].y),
+            1
+        };
+        QGenericMatrix<1, 3, double> point(values);
+        QGenericMatrix<1, 3, double> after = transformation * point;
+        result.vertices[i].x = static_cast<int>(after.data()[0]);
+        result.vertices[i].y = static_cast<int>(after.data()[1]);
+    }
+    return result;
+}
+
+Polygon Polygon::afterTransformation() {
+    Polygon result = *this;
+    result.outerRing = SimplePolygon::afterTransformation(outerRing, transformation);
+    for (int i = 0; i < result.innerRings.size(); i++)
+        result.innerRings[i] = SimplePolygon::afterTransformation(innerRings[i], transformation);
+    result.transformation.setToIdentity();
+
     return result;
 }

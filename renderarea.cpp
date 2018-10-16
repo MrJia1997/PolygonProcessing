@@ -84,24 +84,7 @@ void RenderArea::horizontallyFlip(){
         return;
     }
 
-    double meanY = 0.0;
-    for (int i = 0; i < polygons[curGraphLayer].outerRing.vertices.size(); i++) {
-        meanY += polygons[curGraphLayer].outerRing.vertices[i].y;
-    }
-    meanY /= polygons[curGraphLayer].outerRing.vertices.size();
-
-
-    int intMeanY = static_cast<int>(meanY);
-    Polygon translateResult = polygons[curGraphLayer];
-    for (int i = 0; i < translateResult.outerRing.vertices.size(); i++) {
-        translateResult.outerRing.vertices[i].y = 2 * intMeanY - translateResult.outerRing.vertices[i].y;
-    }
-    for (int i = 0; i < translateResult.innerRings.size(); i++) {
-        for (int j = 0; j < translateResult.innerRings[i].vertices.size(); j++) {
-            translateResult.innerRings[i].vertices[j].y = 2 * intMeanY - translateResult.innerRings[i].vertices[j].y;
-        }
-    }
-    polygons[curGraphLayer] = translateResult;
+    polygons[curGraphLayer].horizontalFlip();
 
     update();
 }
@@ -112,24 +95,7 @@ void RenderArea::verticallyFlip() {
         return;
     }
 
-    double meanX = 0.0;
-    for (int i = 0; i < polygons[curGraphLayer].outerRing.vertices.size(); i++) {
-        meanX += polygons[curGraphLayer].outerRing.vertices[i].x;
-    }
-    meanX /= polygons[curGraphLayer].outerRing.vertices.size();
-
-
-    int intMeanX = static_cast<int>(meanX);
-    Polygon translateResult = polygons[curGraphLayer];
-    for (int i = 0; i < translateResult.outerRing.vertices.size(); i++) {
-        translateResult.outerRing.vertices[i].x = 2 * intMeanX - translateResult.outerRing.vertices[i].x;
-    }
-    for (int i = 0; i < translateResult.innerRings.size(); i++) {
-        for (int j = 0; j < translateResult.innerRings[i].vertices.size(); j++) {
-            translateResult.innerRings[i].vertices[j].x = 2 * intMeanX - translateResult.innerRings[i].vertices[j].x;
-        }
-    }
-    polygons[curGraphLayer] = translateResult;
+    polygons[curGraphLayer].verticalFlip();
 
     update();
 }
@@ -171,7 +137,9 @@ void RenderArea::mousePressEvent(QMouseEvent *event) {
         curMousePos = Point(event->pos().x(), event->pos().y());
         //qDebug() << "Is in the outer ring:" << polygons[curGraphLayer].outerRing.isInsideSimplePolygon(curMousePos);
 
-        if (!polygons[curGraphLayer].outerRing.isInsideSimplePolygon(curMousePos)) {
+        Polygon afterP = polygons[curGraphLayer].afterTransformation();
+
+        if (!afterP.outerRing.isInsideSimplePolygon(curMousePos)) {
             QMessageBox::warning(this, QString("Warning"), QString("Inner ring must inside the outer ring."));
             tempPolygonPath.clear();
             return;
@@ -182,7 +150,9 @@ void RenderArea::mousePressEvent(QMouseEvent *event) {
             curStatus = DEFAULT;
             SimplePolygon sp(tempPolygonPath);
             sp.edgeColor = polygons[curGraphLayer].outerRing.edgeColor;
-            polygons[curGraphLayer].innerRings.append(sp);
+            afterP.innerRings.append(sp);
+
+            polygons[curGraphLayer] = afterP;
 
             tempPolygonPath.clear();
             emit polygonPathClosed();
@@ -227,14 +197,10 @@ void RenderArea::mouseMoveEvent(QMouseEvent *event) {
         int minX = INT_MAX, minY = INT_MAX, maxX = INT_MIN, maxY = INT_MIN;
         for (int i = 0; i < tempPolygon.outerRing.vertices.size(); i++) {
             Point p = tempPolygon.outerRing.vertices[i];
-            if (p.x < minX)
-                minX = p.x;
-            if (p.x > maxX)
-                maxX = p.x;
-            if (p.y < minY)
-                minY = p.y;
-            if (p.y > maxY)
-                maxY = p.y;
+            if (p.x < minX) minX = p.x;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y < minY) minY = p.y;
+            if (p.y > maxY) maxY = p.y;
         }
 
         int areaHeight = this->size().height();
@@ -251,27 +217,11 @@ void RenderArea::mouseMoveEvent(QMouseEvent *event) {
 
         // Do translation.
         Polygon translateResult = tempPolygon;
-        for (int i = 0; i < translateResult.outerRing.vertices.size(); i++) {
-            translateResult.outerRing.vertices[i].translate(deltaX, deltaY);
-        }
-        for (int i = 0; i < translateResult.innerRings.size(); i++) {
-            for (int j = 0; j < translateResult.innerRings[i].vertices.size(); j++) {
-                translateResult.innerRings[i].vertices[j].translate(deltaX, deltaY);
-            }
-        }
-
+        translateResult.translate(deltaX, deltaY);
         polygons[curGraphLayer] = translateResult;
     }
     else if (curStatus == ROTATE && startRotate == true) {
-        // Calculate rotate center.
-        double meanX = 0.0, meanY = 0.0;
-        for (int i = 0; i < tempPolygon.outerRing.vertices.size(); i++) {
-            meanX += tempPolygon.outerRing.vertices[i].x;
-            meanY += tempPolygon.outerRing.vertices[i].y;
-        }
-        meanX /= tempPolygon.outerRing.vertices.size();
-        meanY /= tempPolygon.outerRing.vertices.size();
-        Point center(static_cast<int>(meanX), static_cast<int>(meanY));
+        Point center = tempPolygon.getCenter();
 
         // Calculate counter-clockwise rotate angle beta.
         Vector vPress = pressMousePos - center;
@@ -281,37 +231,40 @@ void RenderArea::mouseMoveEvent(QMouseEvent *event) {
 
         // Do rotation
         Polygon rotateResult = tempPolygon;
-        for (int i = 0; i < rotateResult.outerRing.vertices.size(); i++) {
-            Vector vPoly = rotateResult.outerRing.vertices[i] - center;
-            vPoly.rotate(sinB, cosB);
-            rotateResult.outerRing.vertices[i] = center+ vPoly;
-
-        }
-        for (int i = 0; i < rotateResult.innerRings.size(); i++) {
-            for (int j = 0; j < rotateResult.innerRings[i].vertices.size(); j++) {
-                Vector vPoly = rotateResult.innerRings[i].vertices[j] - center;
-                vPoly.rotate(sinB, cosB);
-                rotateResult.innerRings[i].vertices[j] = center + vPoly;
-            }
-        }
-
+        rotateResult.rotate(sinB, cosB);
         polygons[curGraphLayer] = rotateResult;
+
     }
 
     update();
 }
 
 void RenderArea::mouseReleaseEvent(QMouseEvent *event) {
+    qDebug() << "Mouse Released @" << event->pos();
+
     if (curStatus == MOVE && startMove)
         startMove = false;
     else if (curStatus == ROTATE && startRotate)
         startRotate = false;
 }
 
+void RenderArea::wheelEvent(QWheelEvent *event) {
+    qDebug() << "Mouse Wheel Changed @" << event->delta();
+    if (curStatus == ZOOM) {
+        if (event->delta() < 0)
+            polygons[curGraphLayer].zoom(1.05);
+        else
+            polygons[curGraphLayer].zoom(0.95);
+    }
+
+    update();
+}
+
 void RenderArea::paintEvent(QPaintEvent *event) {
     // qDebug() << "Paint Event Triggered.";
 
     paintFrame();
+
     for (int i = 0; i < polygons.size(); i++) {
         if (polygons[i].isVisible) {
             // qDebug() << "Draw Polygon " << i;
@@ -353,13 +306,15 @@ void RenderArea::paintTempPolygonPath() {
 
 
 void RenderArea::paintPolygon(Polygon p) {
+    Polygon afterP = p.afterTransformation();
+
     // Paint edges
-    paintEdges(p.outerRing);
-    for (int i = 0; i<p.innerRings.size(); i++)
-        paintEdges(p.innerRings[i]);
+    paintEdges(afterP.outerRing);
+    for (int i = 0; i < afterP.innerRings.size(); i++)
+        paintEdges(afterP.innerRings[i]);
 
     // Paint inner area
-    fillInnerArea(p);
+    fillInnerArea(afterP);
 
 }
 
@@ -394,11 +349,10 @@ void RenderArea::fillInnerArea(Polygon p) {
     };
 
     int areaHeight = this->size().height();
-
-    QVector<Edge*> NET(areaHeight);
-    Edge *AET;
     SimplePolygon outer = p.outerRing;
     QList<SimplePolygon> inners = p.innerRings;
+    QVector<Edge*> NET(areaHeight);
+    Edge *AET;
 
     int ymaxAll = INT_MIN, yminAll = INT_MAX;
     for (int i = 0; i < outer.vertices.size(); i++) {
