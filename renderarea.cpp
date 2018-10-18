@@ -201,28 +201,6 @@ void RenderArea::mouseMoveEvent(QMouseEvent *event) {
         int deltaX = curMousePos.x - pressMousePos.x;
         int deltaY = curMousePos.y - pressMousePos.y;
 
-//        // Prevent from moving out of the frame.
-//        int minX = INT_MAX, minY = INT_MAX, maxX = INT_MIN, maxY = INT_MIN;
-//        for (int i = 0; i < tempPolygon.outerRing.vertices.size(); i++) {
-//            Point p = tempPolygon.outerRing.vertices[i];
-//            if (p.x < minX) minX = p.x;
-//            if (p.x > maxX) maxX = p.x;
-//            if (p.y < minY) minY = p.y;
-//            if (p.y > maxY) maxY = p.y;
-//        }
-
-//        int areaHeight = this->size().height();
-//        int areaWidth = this->size().width();
-
-//        if (deltaX > 0)
-//            deltaX = qMin(deltaX, areaWidth - maxX - 2);
-//        else
-//            deltaX = qMax(deltaX, -minX + 2);
-//        if (deltaY > 0)
-//            deltaY = qMin(deltaY, areaHeight - maxY - 2);
-//        else
-//            deltaY = qMax(deltaY, -minY + 2);
-
         // Do translation.
         Polygon translateResult = tempPolygon;
         translateResult.translate(deltaX, deltaY);
@@ -287,7 +265,7 @@ void RenderArea::paintEvent(QPaintEvent *event) {
 
 void RenderArea::paintFrame() {
     QPainter painter(this);
-    QPen pen(Qt::black, 1, Qt::SolidLine);
+    QPen pen(QColor(142, 142, 142), 1, Qt::SolidLine);
     painter.setPen(pen);
 
     painter.drawRect(0, 0, this->size().width() - 1, this->size().height() - 1);
