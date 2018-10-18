@@ -16,6 +16,16 @@ enum {
     INSIDE
 };
 
+enum {
+    SUBJECT,
+    CLIP
+};
+
+enum {
+    LEFT,
+    RIGHT
+};
+
 class Vector {
 public:
     int x;
@@ -59,7 +69,6 @@ public:
 
     int isClockwise();
     void reverseVertices();
-    bool isInsideSimplePolygon(Point p);
 
     static SimplePolygon afterTransformation(SimplePolygon sp, QGenericMatrix<3, 3, double> transformation);
 };
@@ -71,18 +80,22 @@ public:
     QGenericMatrix<3, 3, double> transformation;
     QColor fillColor = QColor(255, 255, 255, 0);
     bool isVisible = true;
+    bool isClosed = true;
 
 public:
     Polygon() {}
     Polygon(SimplePolygon o, QList<SimplePolygon> i = QList<SimplePolygon>()): outerRing(o), innerRings(i) {}
     ~Polygon() {innerRings.clear();}
 
+    bool isInsidePolygon(Point p);
     Point getCenter();
     void translate(int deltaX, int deltaY);
     void rotate(double sinB, double cosB);
     void zoom(double scale);
     void horizontalFlip();
     void verticalFlip();
+
+    static QList<Polygon> clip(Polygon subjectP, Polygon clipP);
 
     Polygon afterTransformation();
 

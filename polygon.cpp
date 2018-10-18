@@ -1,3 +1,6 @@
+#define ZOOM_MAX 5.0
+#define ZOOM_MIN 0.2
+
 #include "polygon.h"
 #include <QtMath>
 
@@ -92,35 +95,52 @@ void SimplePolygon::reverseVertices() {
         vertices.swap(i, n - i - 1);
 }
 
-bool SimplePolygon::isInsideSimplePolygon(Point p) {
-    if (vertices.size() < 3)
+bool Polygon::isInsidePolygon(Point p) {
+    if (outerRing.vertices.size() < 3)
         return false;
 
     // Using ray casting method.
-    int n = vertices.size();
+
+    bool end = false;
     bool result = false;
-    for (int i = 0; i < n; i++) {
-        Point A = vertices[i];
-        Point B = vertices[(i+1) % n];
 
-        // Point is right on one of the vertices.
-        if ((p.x == A.x && p.y == A.y) || (p.x == B.x && p.y == B.y))
-            return false;
+    auto calcIntersections = [&](QList<Point> vertices, Point p) {
+        int n = vertices.size();
+        for (int i = 0; i < n; i++) {
+            Point A = vertices[i];
+            Point B = vertices[(i+1) % n];
 
-        // When a vertex locates on the ray, it is counted as above the ray.
-        // If A and B in different side of a ray, we think there is an intersection.
-        if ((A.y >= p.y && B.y < p.y) || (A.y < p.y && B.y >= p.y)) {
-            double intersection_x = A.x + 1.0 * (p.y-A.y) * (A.x-B.x) / (A.y-B.y);
-
-            // Point is on one of the edges.
-            if (qAbs(intersection_x - p.x) < 0.5) {
-                return false;
+            // Point is right on one of the vertices.
+            if ((p.x == A.x && p.y == A.y) || (p.x == B.x && p.y == B.y)) {
+                result = false;
+                end = true;
+                return;
             }
+            // When a vertex locates on the ray, it is counted as above the ray.
+            // If A and B in different side of a ray, we think there is an intersection.
+            if ((A.y >= p.y && B.y < p.y) || (A.y < p.y && B.y >= p.y)) {
+                double intersection_x = A.x + 1.0 * (p.y-A.y) * (A.x-B.x) / (A.y-B.y);
 
-            if (intersection_x > p.x) {
-                result = !result;
+                // Point is on one of the edges.
+                if (qAbs(intersection_x - p.x) < 0.5) {
+                    result = false;
+                    end = true;
+                    return;
+                }
+
+                if (intersection_x > p.x) {
+                    result = !result;
+                }
             }
         }
+        return;
+    };
+
+    calcIntersections(outerRing.vertices, p);
+    for (int i = 0; i < innerRings.size(); i++) {
+        if (end == true)
+            return result;
+        calcIntersections(innerRings[i].vertices, p);
     }
     return result;
 }
@@ -129,12 +149,13 @@ Point Polygon::getCenter() {
     Polygon afterP = this->afterTransformation();
 
     double meanX = 0.0, meanY = 0.0;
-    for (int i = 0; i < afterP.outerRing.vertices.size(); i++) {
+    int verticesNum = afterP.outerRing.vertices.size();
+    for (int i = 0; i < verticesNum; i++) {
         meanX += afterP.outerRing.vertices[i].x;
         meanY += afterP.outerRing.vertices[i].y;
     }
-    meanX /= afterP.outerRing.vertices.size();
-    meanY /= afterP.outerRing.vertices.size();
+    meanX /= verticesNum;
+    meanY /= verticesNum;
     return Point(static_cast<int>(meanX), static_cast<int>(meanY));
 }
 
@@ -172,6 +193,22 @@ void Polygon::rotate(double sinB, double cosB) {
 }
 
 void Polygon::zoom(double scale) {
+    auto detTrans = [](QGenericMatrix<3, 3, double> mat){
+        double *data = mat.data();
+        return data[0] * data[4] - data[1] * data[3];
+    };
+
+    double scaleNow = detTrans(transformation);
+    double scaleAdjusted = 1.0;
+
+    if (scaleNow * scale > ZOOM_MAX)
+        scaleAdjusted = ZOOM_MAX / scaleNow;
+    else if (scaleNow * scale < ZOOM_MIN)
+        scaleAdjusted = ZOOM_MIN / scaleNow;
+    else
+        scaleAdjusted = scale;
+
+
     Point center = getCenter();
 
     double transValue1[] = {
@@ -180,17 +217,19 @@ void Polygon::zoom(double scale) {
         0, 0, 1
     };
     double zoomValue[] = {
-        scale,     0, 0,
-            0, scale, 0,
-            0,     0, 1
+        scaleAdjusted,             0, 0,
+                    0, scaleAdjusted, 0,
+                    0,             0, 1
     };
     double transValue2[] = {
         1, 0, static_cast<double>(center.x),
         0, 1, static_cast<double>(center.y),
         0, 0, 1
     };
+
     QGenericMatrix<3, 3, double> trans1(transValue1), trans2(transValue2), zoom(zoomValue);
     transformation = trans2 * zoom * trans1 * transformation;
+    qDebug() << "Scale:" << detTrans(transformation);
 
     return;
 }

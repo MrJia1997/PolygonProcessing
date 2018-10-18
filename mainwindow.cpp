@@ -1,6 +1,5 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include <QDebug>
 #include <QMessageBox>
 #include <QColorDialog>
 
@@ -51,6 +50,16 @@ void MainWindow::createRenderArea() {
     ui->horizontalLayout->setStretch(1, 4);
 
     connect(polygonRender, &RenderArea::polygonPathClosed, this, &MainWindow::restoreToolbar);
+    connect(polygonRender, &RenderArea::newPolygonCreated, this, [&]() {
+        QListWidgetItem *newItem = new QListWidgetItem;
+        newItem->setText(QString("New Layer ") + QString::number(newLayerCounter));
+        ui->graphLayerList->addItem(newItem);
+        ui->graphLayerList->setCurrentItem(newItem);
+        newLayerCounter++;
+        restoreToolbar();
+        polygonRender->clearTempPolygonPath();
+        polygonRender->update();
+    });
 }
 
 void MainWindow::restoreToolbar() {
@@ -113,6 +122,8 @@ void MainWindow::onClickToolbarActionGroup(QAction *action) {
     }
     else if (action == ui->actionClip) {
         // TODO: clip
+        polygonRender->clip(0, 1);
+        restoreToolbar();
     }
 }
 

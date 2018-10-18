@@ -5,7 +5,6 @@
 #include <QPen>
 #include <QPainter>
 #include <QMessageBox>
-#include <QDebug>
 
 RenderArea::RenderArea(QWidget *parent) : QWidget (parent) {
 
@@ -100,8 +99,17 @@ void RenderArea::verticallyFlip() {
     update();
 }
 
+void RenderArea::clip(int id1, int id2) {
+    QList<Polygon> result = Polygon::clip(polygons[id1], polygons[id2]);
+    polygons += result;
+    for (int i = 0; i < result.size(); i++) {
+        emit newPolygonCreated();
+    }
+}
+
 void RenderArea::mousePressEvent(QMouseEvent *event) {
     qDebug() << "Mouse Pressed @" << event->pos();
+    //qDebug() << "Is in the polygon:" << polygons[curGraphLayer].isInsidePolygon(curMousePos);
 
     if (curStatus == DRAW_OUTER_RING) {
         if (polygons[curGraphLayer].outerRing.vertices.size() > 0) {
@@ -135,11 +143,10 @@ void RenderArea::mousePressEvent(QMouseEvent *event) {
         }
 
         curMousePos = Point(event->pos().x(), event->pos().y());
-        //qDebug() << "Is in the outer ring:" << polygons[curGraphLayer].outerRing.isInsideSimplePolygon(curMousePos);
 
         Polygon afterP = polygons[curGraphLayer].afterTransformation();
 
-        if (!afterP.outerRing.isInsideSimplePolygon(curMousePos)) {
+        if (!afterP.isInsidePolygon(curMousePos)) {
             QMessageBox::warning(this, QString("Warning"), QString("Inner ring must inside the outer ring."));
             tempPolygonPath.clear();
             return;
@@ -226,6 +233,10 @@ void RenderArea::mouseMoveEvent(QMouseEvent *event) {
         // Calculate counter-clockwise rotate angle beta.
         Vector vPress = pressMousePos - center;
         Vector vCur = curMousePos - center;
+
+        if (vPress.module() < 1e-5 || vCur.module() < 1e-5)
+            return;
+
         double sinB = 1.0 * (vPress ^ vCur) / (vPress.module() * vCur.module());
         double cosB = 1.0 * (vPress * vCur) / (vPress.module() * vCur.module());
 
@@ -261,13 +272,10 @@ void RenderArea::wheelEvent(QWheelEvent *event) {
 }
 
 void RenderArea::paintEvent(QPaintEvent *event) {
-    // qDebug() << "Paint Event Triggered.";
-
     paintFrame();
 
     for (int i = 0; i < polygons.size(); i++) {
         if (polygons[i].isVisible) {
-            // qDebug() << "Draw Polygon " << i;
             paintPolygon(polygons[i]);
         }
     }
@@ -307,14 +315,16 @@ void RenderArea::paintTempPolygonPath() {
 
 void RenderArea::paintPolygon(Polygon p) {
     Polygon afterP = p.afterTransformation();
+    // TODO: Use the window to clip afterP and color the result
+
+
+    // Paint inner area
+    fillInnerArea(afterP);
 
     // Paint edges
     paintEdges(afterP.outerRing);
     for (int i = 0; i < afterP.innerRings.size(); i++)
         paintEdges(afterP.innerRings[i]);
-
-    // Paint inner area
-    fillInnerArea(afterP);
 
 }
 
@@ -435,10 +445,10 @@ void RenderArea::fillInnerArea(Polygon p) {
         // Fill color
         Edge *p = AET;
         while (p->next && p->next) {
-            double x_A = p->next->x;
-            double x_B = p->next->next->x;
-            for (int x = static_cast<int>(x_A + 2); x < (x_B - 2); x++)
-                painter.drawPoint(x, y);
+            double xA = p->next->x;
+            double xB = p->next->next->x;
+            painter.drawLine(static_cast<int>(xA + 1), y, static_cast<int>(xB - 1), y);
+
             p = p->next->next;
         }
 

@@ -28,7 +28,8 @@ SOURCES += \
         main.cpp \
         mainwindow.cpp \
     polygon.cpp \
-    renderarea.cpp
+    renderarea.cpp \
+    polygonclip.cpp
 
 HEADERS += \
         mainwindow.h \

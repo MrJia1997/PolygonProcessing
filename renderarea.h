@@ -28,6 +28,7 @@ public:
 
 signals:
     void polygonPathClosed();
+    void newPolygonCreated();
 
 public slots:
     void setGraphLayer(int id);
@@ -37,6 +38,7 @@ public slots:
     void eraseCurrentPolygon();
     void horizontallyFlip();
     void verticallyFlip();
+    void clip(int id1, int id2);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
