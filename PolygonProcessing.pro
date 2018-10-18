@@ -29,15 +29,18 @@ SOURCES += \
         mainwindow.cpp \
     polygon.cpp \
     renderarea.cpp \
-    polygonclip.cpp
+    polygonclip.cpp \
+    clipdialog.cpp
 
 HEADERS += \
         mainwindow.h \
     polygon.h \
-    renderarea.h
+    renderarea.h \
+    clipdialog.h
 
 FORMS += \
-        mainwindow.ui
+        mainwindow.ui \
+    clipdialog.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

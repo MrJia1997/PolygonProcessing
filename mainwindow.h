@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include "renderarea.h"
+#include "clipdialog.h"
 #include <QMainWindow>
 #include <QActionGroup>
 #include <QListWidget>
@@ -21,8 +22,11 @@ public:
 
 private:
     Ui::MainWindow *ui;
+    ClipDialog *clipDialog;
     int newLayerCounter = 0;
+    int clipLayerCounter = 0;
     RenderArea *polygonRender;
+    QList<QString> graphLayerNames;
     QActionGroup *toolbarActions;
 
 
@@ -35,7 +39,8 @@ private slots:
     void restoreToolbar();
     void onClickToolbarActionGroup(QAction *action);
     void onChangeGraphLayer(int id);
-    void addGraphLayer();
+    void addGraphLayer(QString layerName);
+    void addNewGraphLayer();
     void deleteGraphLayer();
 };
 

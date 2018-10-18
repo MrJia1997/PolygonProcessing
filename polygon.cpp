@@ -1,5 +1,5 @@
-#define ZOOM_MAX 5.0
-#define ZOOM_MIN 0.2
+#define ZOOM_MAX 10.0
+#define ZOOM_MIN 0.1
 
 #include "polygon.h"
 #include <QtMath>

@@ -1,5 +1,7 @@
 #include "mainwindow.h"
+#include "clipdialog.h"
 #include "ui_mainwindow.h"
+#include "ui_clipdialog.h"
 #include <QMessageBox>
 #include <QColorDialog>
 
@@ -23,7 +25,7 @@ MainWindow::~MainWindow()
 void MainWindow::initGraphLayer() {
 
     connect(ui->graphLayerList, SIGNAL(currentRowChanged(int)), this, SLOT(onChangeGraphLayer(int)));
-    connect(ui->addGraphLayer, SIGNAL(clicked()), this, SLOT(addGraphLayer()));
+    connect(ui->addGraphLayer, SIGNAL(clicked()), this, SLOT(addNewGraphLayer()));
     connect(ui->deleteGraphLayer, SIGNAL(clicked()), this, SLOT(deleteGraphLayer()));
 }
 
@@ -52,9 +54,11 @@ void MainWindow::createRenderArea() {
     connect(polygonRender, &RenderArea::polygonPathClosed, this, &MainWindow::restoreToolbar);
     connect(polygonRender, &RenderArea::newPolygonCreated, this, [&]() {
         QListWidgetItem *newItem = new QListWidgetItem;
-        newItem->setText(QString("New Layer ") + QString::number(newLayerCounter));
+        QString layerName = QString("New Layer ") + QString::number(newLayerCounter);
+        newItem->setText(layerName);
         ui->graphLayerList->addItem(newItem);
         ui->graphLayerList->setCurrentItem(newItem);
+        graphLayerNames.append(layerName);
         newLayerCounter++;
         restoreToolbar();
         polygonRender->clearTempPolygonPath();
@@ -121,8 +125,16 @@ void MainWindow::onClickToolbarActionGroup(QAction *action) {
         restoreToolbar();
     }
     else if (action == ui->actionClip) {
-        // TODO: clip
-        polygonRender->clip(0, 1);
+        clipDialog = new ClipDialog(this);
+        QStringList layers(graphLayerNames);
+        clipDialog->addComboItems(layers, SUB_COMBO);
+        clipDialog->addComboItems(layers, CLIP_COMBO);
+        clipDialog->show();
+
+        connect(clipDialog, &ClipDialog::selectedLayers, this, [&](int idSub, int idClip) {
+            polygonRender->clip(idSub, idClip);
+        });
+
         restoreToolbar();
     }
 }
@@ -131,19 +143,26 @@ void MainWindow::onChangeGraphLayer(int id) {
     qDebug() << "Change to Graph Layer" << id;
     polygonRender->setGraphLayer(id);
     polygonRender->setStatus(DEFAULT);
+    restoreToolbar();
 }
 
-void MainWindow::addGraphLayer() {
+void MainWindow::addGraphLayer(QString layerName) {
     QListWidgetItem *newItem = new QListWidgetItem;
-    newItem->setText(QString("New Layer ") + QString::number(newLayerCounter));
+    newItem->setText(layerName);
     ui->graphLayerList->addItem(newItem);
     ui->graphLayerList->setCurrentItem(newItem);
     polygonRender->addPolygon();
-    newLayerCounter++;
+    graphLayerNames.append(layerName);
 
     restoreToolbar();
     polygonRender->clearTempPolygonPath();
     polygonRender->update();
+}
+
+void MainWindow::addNewGraphLayer() {
+    QString title = QString("New Layer ") + QString::number(newLayerCounter);
+    newLayerCounter++;
+    addGraphLayer(title);
 }
 
 void MainWindow::deleteGraphLayer() {
@@ -155,6 +174,10 @@ void MainWindow::deleteGraphLayer() {
     QListWidgetItem *item = ui->graphLayerList->takeItem(id);
     delete item;
     polygonRender->deletePolygon(id);
+    graphLayerNames.takeAt(id);
+
+    // Delete will change graph layer to the next one, which will cause problem.
+    polygonRender->setGraphLayer(id);
 
     restoreToolbar();
     polygonRender->clearTempPolygonPath();

@@ -30,14 +30,23 @@ bool intersect(vertex *P1, vertex *P2, vertex *Q1, vertex *Q2, double &alphaP, d
             alphaQ = WEC_Q1 / (WEC_Q1 - WEC_Q2);
 
             // perturbation for degeneracy
+            int factor = rand() % 2 ? 1 : -1;
             if (qAbs(alphaP) < 1e-5) {
-                P1->x += 2 * Q1Q2y / qSqrt(Q1Q2x * Q1Q2x + Q1Q2y * Q1Q2y);
-                P1->y -= 2 * Q1Q2x / qSqrt(Q1Q2x * Q1Q2x + Q1Q2y * Q1Q2y);
+                P1->x += 2 * factor *  Q1Q2y / qSqrt(Q1Q2x * Q1Q2x + Q1Q2y * Q1Q2y);
+                P1->y -= 2 * factor * Q1Q2x / qSqrt(Q1Q2x * Q1Q2x + Q1Q2y * Q1Q2y);
+                return intersect(P1, P2, Q1, Q2, alphaP, alphaQ);
+            } else if (qAbs(alphaP - 1) < 1e-5) {
+                P2->x += 2 * factor *  Q1Q2y / qSqrt(Q1Q2x * Q1Q2x + Q1Q2y * Q1Q2y);
+                P2->y -= 2 * factor * Q1Q2x / qSqrt(Q1Q2x * Q1Q2x + Q1Q2y * Q1Q2y);
                 return intersect(P1, P2, Q1, Q2, alphaP, alphaQ);
             }
             if (qAbs(alphaQ) < 1e-5) {
-                Q1->x += 2 * P1P2y / qSqrt(P1P2x * P1P2x + P1P2y * P1P2y);
-                Q1->y -= 2 * P1P2x / qSqrt(P1P2x * P1P2x + P1P2y * P1P2y);
+                Q1->x += 2 * factor * P1P2y / qSqrt(P1P2x * P1P2x + P1P2y * P1P2y);
+                Q1->y -= 2 * factor * P1P2x / qSqrt(P1P2x * P1P2x + P1P2y * P1P2y);
+                return intersect(P1, P2, Q1, Q2, alphaP, alphaQ);
+            } else if (qAbs(alphaQ - 1) < 1e-5) {
+                Q2->x += 2 * factor * P1P2y / qSqrt(P1P2x * P1P2x + P1P2y * P1P2y);
+                Q2->y -= 2 * factor * P1P2x / qSqrt(P1P2x * P1P2x + P1P2y * P1P2y);
                 return intersect(P1, P2, Q1, Q2, alphaP, alphaQ);
             }
 
@@ -172,6 +181,10 @@ QList<Polygon> Polygon::clip(Polygon subjectP, Polygon clipP) {
     // Using Greiner Hormann algorithm
     Polygon afterSub = subjectP.afterTransformation();
     Polygon afterClip = clipP.afterTransformation();
+
+    if (afterSub.outerRing.vertices.size() == 0 ||
+          afterClip.outerRing.vertices.size() == 0)
+        return QList<Polygon>();
 
     vertex *subject = nullptr, *clip = nullptr;
 

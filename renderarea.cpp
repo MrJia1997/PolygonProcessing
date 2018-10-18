@@ -50,6 +50,7 @@ void RenderArea::clearTempPolygonPath() {
 }
 
 void RenderArea::setGraphLayer(int id) {
+    qDebug() << "Current graph layer set to" << id;
     curGraphLayer = id;
 }
 
@@ -200,27 +201,27 @@ void RenderArea::mouseMoveEvent(QMouseEvent *event) {
         int deltaX = curMousePos.x - pressMousePos.x;
         int deltaY = curMousePos.y - pressMousePos.y;
 
-        // Prevent from moving out of the frame.
-        int minX = INT_MAX, minY = INT_MAX, maxX = INT_MIN, maxY = INT_MIN;
-        for (int i = 0; i < tempPolygon.outerRing.vertices.size(); i++) {
-            Point p = tempPolygon.outerRing.vertices[i];
-            if (p.x < minX) minX = p.x;
-            if (p.x > maxX) maxX = p.x;
-            if (p.y < minY) minY = p.y;
-            if (p.y > maxY) maxY = p.y;
-        }
+//        // Prevent from moving out of the frame.
+//        int minX = INT_MAX, minY = INT_MAX, maxX = INT_MIN, maxY = INT_MIN;
+//        for (int i = 0; i < tempPolygon.outerRing.vertices.size(); i++) {
+//            Point p = tempPolygon.outerRing.vertices[i];
+//            if (p.x < minX) minX = p.x;
+//            if (p.x > maxX) maxX = p.x;
+//            if (p.y < minY) minY = p.y;
+//            if (p.y > maxY) maxY = p.y;
+//        }
 
-        int areaHeight = this->size().height();
-        int areaWidth = this->size().width();
+//        int areaHeight = this->size().height();
+//        int areaWidth = this->size().width();
 
-        if (deltaX > 0)
-            deltaX = qMin(deltaX, areaWidth - maxX - 2);
-        else
-            deltaX = qMax(deltaX, -minX + 2);
-        if (deltaY > 0)
-            deltaY = qMin(deltaY, areaHeight - maxY - 2);
-        else
-            deltaY = qMax(deltaY, -minY + 2);
+//        if (deltaX > 0)
+//            deltaX = qMin(deltaX, areaWidth - maxX - 2);
+//        else
+//            deltaX = qMax(deltaX, -minX + 2);
+//        if (deltaY > 0)
+//            deltaY = qMin(deltaY, areaHeight - maxY - 2);
+//        else
+//            deltaY = qMax(deltaY, -minY + 2);
 
         // Do translation.
         Polygon translateResult = tempPolygon;
@@ -315,12 +316,25 @@ void RenderArea::paintTempPolygonPath() {
 
 void RenderArea::paintPolygon(Polygon p) {
     Polygon afterP = p.afterTransformation();
-    // TODO: Use the window to clip afterP and color the result
 
+    int areaWidth = this->size().width();
+    int areaHeight = this->size().height();
+    QList<Point> frameVertices = {
+        Point(0, 0),
+        Point(0, areaHeight),
+        Point(areaWidth, areaHeight),
+        Point(areaWidth, 0)
+    };
+    SimplePolygon sp(frameVertices);
+    Polygon frame(sp);
+
+    QList<Polygon> windowClip = Polygon::clip(afterP, frame);
 
     // Paint inner area
-    fillInnerArea(afterP);
-
+    for (int i = 0; i < windowClip.size(); i++) {
+        windowClip[i].fillColor = afterP.fillColor;
+        fillInnerArea(windowClip[i]);
+    }
     // Paint edges
     paintEdges(afterP.outerRing);
     for (int i = 0; i < afterP.innerRings.size(); i++)
@@ -361,7 +375,7 @@ void RenderArea::fillInnerArea(Polygon p) {
     int areaHeight = this->size().height();
     SimplePolygon outer = p.outerRing;
     QList<SimplePolygon> inners = p.innerRings;
-    QVector<Edge*> NET(areaHeight);
+    QVector<Edge*> NET(areaHeight + 1);
     Edge *AET;
 
     int ymaxAll = INT_MIN, yminAll = INT_MAX;
